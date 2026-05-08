@@ -1,0 +1,261 @@
+ * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #212121;
+            color: white;
+            font-family: 'Manrope', sans-serif;
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+
+        /* Typography headings with Sora */
+        h1, h2, h3, h4, .logo, .brand, .btn, .role-badge {
+            font-family: 'Sora', sans-serif;
+        }
+
+        /* Main container */
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+        }
+
+        /* Navbar */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            padding: 1rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            background-color: #F05E23;
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .brand h1 {
+            font-size: 1.5rem;
+            letter-spacing: -0.3px;
+        }
+
+        .brand p {
+            font-size: 0.75rem;
+            opacity: 0.7;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+        }
+
+        .nav-btn {
+            background: transparent;
+            border: none;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            border-radius: 40px;
+            transition: 0.2s;
+            font-family: 'Sora', sans-serif;
+        }
+
+        .nav-btn:hover {
+            background: rgba(240, 94, 35, 0.2);
+        }
+
+        .btn-primary {
+            background-color: #F05E23;
+            border: none;
+            color: white;
+            padding: 0.6rem 1.2rem;
+            border-radius: 40px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            font-family: 'Sora', sans-serif;
+        }
+
+        .btn-primary:hover {
+            background-color: #d14c18;
+            transform: scale(0.98);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid #F05E23;
+            color: #F05E23;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255,255,255,0.05);
+            padding: 0.4rem 1rem;
+            border-radius: 60px;
+        }
+
+        .role-badge {
+            background: #F05E23;
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 50px;
+            font-weight: 600;
+        }
+
+        /* Card & Form containers */
+        .card {
+            background: #2c2c2c;
+            border-radius: 24px;
+            padding: 2rem;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.4rem;
+            font-weight: 500;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            background: #1e1e1e;
+            border: 1px solid #3a3a3a;
+            border-radius: 16px;
+            color: white;
+            font-family: 'Manrope', sans-serif;
+            font-size: 0.95rem;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #F05E23;
+        }
+
+        /* Dashboard sections */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.8rem;
+            margin-top: 2rem;
+        }
+
+        .map-placeholder {
+            background: #1e1e1e;
+            border-radius: 24px;
+            padding: 2rem;
+            text-align: center;
+            border: 1px dashed #F05E23;
+            min-height: 300px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .bus-item {
+            background: #2a2a2a;
+            border-radius: 20px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid #F05E23;
+        }
+
+        .admin-panel {
+            background: #2c2c2c;
+            border-radius: 24px;
+            padding: 1.5rem;
+        }
+
+        .driver-request-item {
+            background: #212121;
+            padding: 1rem;
+            border-radius: 16px;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .toast-message {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #F05E23;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 40px;
+            font-weight: 600;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            animation: fadeInUp 0.3s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        hr {
+            border-color: #3a3a3a;
+            margin: 1rem 0;
+        }
+
+        .flex-between {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-approved {
+            color: #4caf50;
+            font-weight: bold;
+        }
+
+        .status-pending {
+            color: #ffb74d;
+        }
+
+        @media (max-width: 700px) {
+            .app-container {
+                padding: 1rem;
+            }
+            .navbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
