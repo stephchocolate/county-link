@@ -8,3 +8,14 @@ def index():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+@app.route('/trial.js')
+def serve_js():
+    return render_template('trial.js')  
+
+@app.route('/trial.css')
+def serve_css():
+    return render_template('trial.css')  
+
+if __name__ == '__main__':
+    app.run(debug=True)
