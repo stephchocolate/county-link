@@ -3,88 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>County Link Community Road | Live Bus Tracking</title>
+    <title>County Link | Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="./static/css/styles.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 </head>
 <body>
 <div class="app-container">
 
-    <!-- Auth Panel -->
-    <div id="authPanel" hidden>
-        <div class="card" style="max-width: 480px; margin: 3rem auto;">
-            <div class="logo-area" style="justify-content:center; margin-bottom: 1.5rem;">
-                <div class="logo-icon"><i class="fas fa-bus"></i></div>
-                <div class="brand"><h1>County Link</h1><p>Community Road</p></div>
-            </div>
-            <h2 id="authTitle" style="margin-bottom: 1.2rem;"></h2>
-            <form id="authForm">
-                <!-- Login fields -->
-                <div id="loginFields">
-                    <div class="form-group">
-                        <label>Email</label>
-                        <input type="email" id="email" placeholder="Enter your email" />
-                    </div>
-                    <div class="form-group">
-                        <label>Password</label>
-                        <input type="password" id="password" placeholder="Enter your password" />
-                    </div>
-                </div>
-                <!-- Signup fields -->
-                <div id="signupFields" hidden>
-                    <div class="form-group">
-                        <label>Full Name</label>
-                        <input type="text" id="name" placeholder="Enter your full name" />
-                    </div>
-                    <div class="form-group">
-                        <label>Email</label>
-                        <input type="email" id="emailSignup" placeholder="Enter your email" />
-                    </div>
-                    <div class="form-group">
-                        <label>Password</label>
-                        <input type="password" id="passwordSignup" placeholder="Create a password" />
-                    </div>
-                    <div class="form-group">
-                        <label>Phone Number</label>
-                        <input type="tel" id="phone" placeholder="+254712345678" />
-                    </div>
-                    <div class="form-group">
-                        <label>I am a</label>
-                        <div class="role-radio-group">
-                            <label class="role-radio">
-                                <input type="radio" name="roleSelect" value="passenger" checked />
-                                <span class="radio-dot"></span> Passenger
-                            </label>
-                            <label class="role-radio">
-                                <input type="radio" name="roleSelect" value="driver" />
-                                <span class="radio-dot"></span> Driver
-                            </label>
-                        </div>
-                    </div>
-                    <div id="driverFields" hidden>
-                        <div class="form-group">
-                            <label>Vehicle Number Plate</label>
-                            <input type="text" id="plate" placeholder="KBZ 123A" />
-                        </div>
-                        <div class="driver-note">
-                            Note: Driver accounts require admin approval before you can access the system.
-                        </div>
-                    </div>
-                </div>
-                <button type="submit" id="authSubmitBtn" class="btn-primary" style="width:100%; margin-top: 1rem;"></button>
-            </form>
-            <div id="toggleAuthWrap" style="text-align:center; margin-top: 1.2rem; font-size:0.9rem; opacity:0.7;">
-                <span id="toggleAuthText"></span> <button id="toggleAuthMode" class="nav-btn" style="color:#F05E23; padding:0;"></button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Navbar (shown when logged in) -->
-    <div id="navbar" hidden class="navbar">
+    <!-- Navbar -->
+    <div class="navbar">
         <div class="logo-area">
             <div class="logo-icon"><i class="fas fa-bus"></i></div>
             <div class="brand"><h1 id="navTitle">County Link</h1><p id="navUserName"></p></div>
@@ -97,14 +27,12 @@
     <!-- Admin Panel -->
     <div id="adminPanel" hidden>
         <div class="admin-panel">
-            <!-- Tabs -->
             <div class="admin-tabs">
                 <button class="tab-btn active" data-tab="driverRequests">Driver Requests</button>
                 <button class="tab-btn" data-tab="fleetManagement">Fleet Management</button>
                 <button class="tab-btn" data-tab="announcements">Announcements</button>
             </div>
 
-            <!-- Driver Requests Tab -->
             <div id="tab-driverRequests">
                 <div class="admin-section">
                     <h3>Pending Driver Approvals</h3>
@@ -112,7 +40,6 @@
                 </div>
             </div>
 
-            <!-- Fleet Management Tab -->
             <div id="tab-fleetManagement" hidden>
                 <div class="admin-section">
                     <h3>Live Fleet Tracking</h3>
@@ -128,7 +55,6 @@
                 </div>
             </div>
 
-            <!-- Announcements Tab -->
             <div id="tab-announcements" hidden>
                 <div class="admin-section">
                     <h3>Create Announcement</h3>
@@ -211,7 +137,7 @@
 
 </div>
 
-<!-- Dynamic row templates -->
+<!-- Templates -->
 <template id="tpl-driver-request-row">
     <div class="driver-request-item">
         <div>
@@ -273,6 +199,7 @@
     </div>
 </template>
 
-<script src="./static/js/county.js"></script>
+<script src="{{ url_for('static', filename='js/storage.js') }}"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 </body>
 </html>

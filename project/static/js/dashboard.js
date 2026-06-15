@@ -1,47 +1,4 @@
-// ---------- STORAGE ----------
-const STORAGE_USERS = "countylink_users";
-const STORAGE_DRIVER_REQUESTS = "countylink_driver_requests";
-const STORAGE_SESSION = "countylink_session";
-const STORAGE_BUS_LOCATIONS = "countylink_bus_locations";
 const STORAGE_ANNOUNCEMENTS = "countylink_announcements";
-
-function getUsers() {
-    const users = localStorage.getItem(STORAGE_USERS);
-    if (!users) {
-        const defaultUsers = [{ email: "stephanie.ulare@riarauniversity.ac.ke", password: "admin123", role: "admin", approved: true, name: "Stephanie Admin" }];
-        localStorage.setItem(STORAGE_USERS, JSON.stringify(defaultUsers));
-        return defaultUsers;
-    }
-    return JSON.parse(users);
-}
-function saveUsers(users) { localStorage.setItem(STORAGE_USERS, JSON.stringify(users)); }
-
-function getDriverRequests() {
-    const reqs = localStorage.getItem(STORAGE_DRIVER_REQUESTS);
-    return reqs ? JSON.parse(reqs) : [];
-}
-function saveDriverRequests(r) { localStorage.setItem(STORAGE_DRIVER_REQUESTS, JSON.stringify(r)); }
-
-function getBusLocations() {
-    const locs = localStorage.getItem(STORAGE_BUS_LOCATIONS);
-    if (!locs) {
-        const defaultBuses = [
-            { id: "bus101", driverEmail: null, lat: -1.286389, lng: 36.817223, route: "Route A - City Center", lastUpdate: new Date().toISOString() },
-            { id: "bus102", driverEmail: null, lat: -1.292066, lng: 36.821945, route: "Route B - Westlands", lastUpdate: new Date().toISOString() }
-        ];
-        localStorage.setItem(STORAGE_BUS_LOCATIONS, JSON.stringify(defaultBuses));
-        return defaultBuses;
-    }
-    return JSON.parse(locs);
-}
-function saveBusLocations(buses) { localStorage.setItem(STORAGE_BUS_LOCATIONS, JSON.stringify(buses)); }
-
-function getCurrentSession() {
-    const sess = localStorage.getItem(STORAGE_SESSION);
-    return sess ? JSON.parse(sess) : null;
-}
-function setSession(user) { localStorage.setItem(STORAGE_SESSION, JSON.stringify(user)); }
-function clearSession() { localStorage.removeItem(STORAGE_SESSION); }
 
 function getAnnouncements() {
     const a = localStorage.getItem(STORAGE_ANNOUNCEMENTS);
@@ -49,121 +6,40 @@ function getAnnouncements() {
 }
 function saveAnnouncements(list) { localStorage.setItem(STORAGE_ANNOUNCEMENTS, JSON.stringify(list)); }
 
-function showToast(message, duration = 3000) {
-    const toast = document.createElement("div");
-    toast.className = "toast-message";
-    toast.textContent = message;
-    document.body.appendChild(toast);
-    setTimeout(() => {
-        toast.classList.add("toast-exit");
-        toast.addEventListener("animationend", () => toast.remove(), { once: true });
-    }, duration);
-}
-
-// ---------- PANELS ----------
-const PANELS = ["authPanel", "navbar", "adminPanel", "driverPendingPanel", "driverActivePanel", "passengerPanel", "dashFooter"];
-function hideAll() { PANELS.forEach(id => document.getElementById(id).hidden = true); }
-function show(...ids) { ids.forEach(id => document.getElementById(id).hidden = false); }
-
-// ---------- AUTH ----------
-let authMode = "login";
-
-function renderAuth() {
-    hideAll();
-    show("authPanel");
-    const isLogin = authMode === "login";
-    document.getElementById("authTitle").textContent = isLogin ? "Welcome Back" : "Create Account";
-    document.getElementById("authSubmitBtn").textContent = isLogin ? "Sign In" : "Create Account";
-    document.getElementById("toggleAuthText").textContent = isLogin ? "Don't have an account?" : "Already have an account?";
-    document.getElementById("toggleAuthMode").textContent = isLogin ? "Sign Up" : "Sign In";
-    document.getElementById("loginFields").hidden = !isLogin;
-    document.getElementById("signupFields").hidden = isLogin;
-}
-
-document.querySelectorAll("input[name='roleSelect']").forEach(radio => {
-    radio.addEventListener("change", () => {
-        document.getElementById("driverFields").hidden = radio.value !== "driver" || !radio.checked;
-    });
-});
-
-document.getElementById("authForm").addEventListener("submit", (e) => {
-    e.preventDefault();
-    const isLogin = authMode === "login";
-
-    if (isLogin) {
-        const email = document.getElementById("email").value.trim().toLowerCase();
-        const password = document.getElementById("password").value;
-        if (!email || !password) { showToast("Email and password are required.", 2000); return; }
-        const user = getUsers().find(u => u.email === email && u.password === password);
-        if (!user) { showToast("Invalid credentials", 2000); return; }
-        if (user.role === "driver" && !user.approved) { showToast("Driver account not yet approved by admin.", 2500); return; }
-        setSession({ email: user.email, role: user.role, name: user.name || user.email.split("@")[0] });
-        showToast(`Welcome ${user.name || email}!`);
-        render();
-    } else {
-        const name = document.getElementById("name").value.trim();
-        const email = document.getElementById("emailSignup").value.trim().toLowerCase();
-        const password = document.getElementById("passwordSignup").value;
-        const phone = document.getElementById("phone").value.trim();
-        const isDriver = document.querySelector("input[name='roleSelect']:checked").value === "driver";
-        const plate = isDriver ? document.getElementById("plate").value.trim() : "";
-
-        if (!email || !password) { showToast("Email and password are required.", 2000); return; }
-        const users = getUsers();
-        if (users.find(u => u.email === email)) { showToast("Email already exists. Please log in.", 2000); return; }
-
-        if (isDriver) {
-            users.push({ email, password, name, phone, plate, role: "driver", approved: false });
-            saveUsers(users);
-            const requests = getDriverRequests();
-            if (!requests.find(r => r.email === email)) {
-                requests.push({ email, name, phone, plate, status: "pending", requestedAt: new Date().toISOString() });
-                saveDriverRequests(requests);
-            }
-            setSession({ email, role: "driver", name, approved: false });
-            showToast("Driver request submitted! Await admin approval.");
-        } else {
-            users.push({ email, password, name, phone, role: "passenger", approved: true });
-            saveUsers(users);
-            setSession({ email, role: "passenger", name });
-            showToast("Account created successfully!");
-        }
-        render();
-    }
-});
-
-document.getElementById("toggleAuthMode").addEventListener("click", () => {
-    authMode = authMode === "login" ? "signup" : "login";
-    renderAuth();
-});
-
-// ---------- DASHBOARD ----------
 let adminMap = null;
+
+function showPanel(id) {
+    ["adminPanel", "driverPendingPanel", "driverActivePanel", "passengerPanel"].forEach(p => {
+        document.getElementById(p).hidden = p !== id;
+    });
+}
 
 function renderDashboard(session) {
     const { email, role, name } = session;
     const approved = session.approved !== undefined ? session.approved : true;
     const buses = getBusLocations();
 
-    hideAll();
-    show("navbar");
-    document.getElementById("navTitle").textContent = role === "admin" ? "County Link Admin" : "County Link";
+    const navTitle = document.getElementById("navTitle");
+    if (navTitle) navTitle.textContent = role === "admin" ? "County Link Admin" : "County Link";
     document.getElementById("navUserName").textContent = role === "admin" ? "Admin User" : (name || email);
+    document.getElementById("dashFooter").hidden = role === "admin";
 
     if (role === "admin") {
-        show("adminPanel");
+        showPanel("adminPanel");
         populateAdminPanel(buses, session);
         initAdminTabs(buses, session);
     } else if (role === "driver") {
         if (!approved) {
-            show("driverPendingPanel");
+            showPanel("driverPendingPanel");
         } else {
             assignBusIfNeeded(email, buses);
-            show("driverActivePanel", "dashFooter");
+            showPanel("driverActivePanel");
+            document.getElementById("dashFooter").hidden = false;
             populateDriverPanel(email);
         }
     } else {
-        show("passengerPanel", "dashFooter");
+        showPanel("passengerPanel");
+        document.getElementById("dashFooter").hidden = false;
         populatePassengerPanel(buses);
     }
 
@@ -226,7 +102,7 @@ function initLeafletMap(buses) {
             .bindPopup(`<b>${bus.id}</b><br>${bus.route}`);
     });
 
-    // Active drivers
+    // Active drivers list
     const activeDriversList = document.getElementById("activeDriversList");
     activeDriversList.innerHTML = "";
     const activeDrivers = getUsers().filter(u => u.role === "driver" && u.approved);
@@ -244,7 +120,7 @@ function initLeafletMap(buses) {
         });
     }
 
-    // Available buses
+    // Available buses list
     const availableBusesList = document.getElementById("availableBusesList");
     availableBusesList.innerHTML = "";
     buses.forEach(bus => {
@@ -273,10 +149,12 @@ function populateAnnouncements() {
             list.appendChild(item);
         });
     }
+
     document.querySelectorAll("[data-delete-ann]").forEach(btn => {
         btn.onclick = () => {
             const idx = parseInt(btn.getAttribute("data-delete-ann"));
-            saveAnnouncements(getAnnouncements().filter((_, i) => i !== idx));
+            const updated = getAnnouncements().filter((_, i) => i !== idx);
+            saveAnnouncements(updated);
             populateAnnouncements();
             showToast("Announcement deleted.");
         };
@@ -332,7 +210,7 @@ function attachListeners(session, email, role, approved) {
     document.getElementById("logoutBtn").onclick = () => {
         clearSession();
         showToast("Logged out");
-        render();
+        window.location.href = "/";
     };
 
     if (role === "admin") {
@@ -402,16 +280,12 @@ function attachListeners(session, email, role, approved) {
     }
 }
 
-// ---------- ENTRY POINT ----------
-function render() {
-    const session = getCurrentSession();
-    if (!session) renderAuth();
-    else renderDashboard(session);
+const session = getCurrentSession();
+if (!session) {
+    window.location.href = "/";
+} else {
+    renderDashboard(session);
+    if (session.role === "passenger") {
+        setInterval(() => renderDashboard(getCurrentSession()), 10000);
+    }
 }
-
-render();
-
-setInterval(() => {
-    const sess = getCurrentSession();
-    if (sess && sess.role === "passenger") renderDashboard(sess);
-}, 10000);

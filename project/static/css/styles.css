@@ -1,4 +1,4 @@
- * {
+  * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
@@ -188,51 +188,310 @@
             border-left: 4px solid #F05E23;
         }
 
-        .admin-panel {
+        /* Admin tabs */
+        .admin-tabs {
+            display: flex;
+            gap: 0.5rem;
             background: #2c2c2c;
-            border-radius: 24px;
+            padding: 0.4rem;
+            border-radius: 14px;
+            margin-bottom: 1.5rem;
+            width: fit-content;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: rgba(255,255,255,0.6);
+            font-family: 'Sora', sans-serif;
+            font-weight: 600;
+            font-size: 0.9rem;
+            padding: 0.5rem 1.2rem;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .tab-btn.active {
+            background: #F05E23;
+            color: white;
+        }
+
+        .tab-btn:not(.active):hover {
+            color: white;
+        }
+
+        /* Admin section cards */
+        .admin-section {
+            background: #2c2c2c;
+            border-radius: 20px;
             padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .admin-section h3 {
+            font-size: 1rem;
+            margin-bottom: 1.2rem;
+            opacity: 0.9;
         }
 
         .driver-request-item {
             background: #212121;
-            padding: 1rem;
-            border-radius: 16px;
-            margin-bottom: 1rem;
+            padding: 1rem 1.2rem;
+            border-radius: 14px;
+            margin-bottom: 0.8rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
+            gap: 0.8rem;
+        }
+
+        .driver-request-item .req-name {
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .driver-request-item .req-meta {
+            font-size: 0.82rem;
+            opacity: 0.6;
+            margin-top: 2px;
+        }
+
+        /* Active driver item */
+        .active-driver-item {
+            background: #212121;
+            padding: 1rem 1.2rem;
+            border-radius: 14px;
+            margin-bottom: 0.8rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+        }
+
+        .active-driver-item .driver-name {
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .active-driver-item .driver-meta {
+            font-size: 0.82rem;
+            opacity: 0.6;
+            margin-top: 2px;
+        }
+
+        /* Available bus card */
+        .available-bus-card {
+            background: #2a1a0e;
+            border: 1px solid rgba(240,94,35,0.3);
+            border-radius: 14px;
+            padding: 1rem 1.2rem;
+            margin-bottom: 0.8rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+        }
+
+        .available-bus-card .bus-name {
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        .available-bus-card .bus-plate {
+            font-size: 0.82rem;
+            opacity: 0.7;
+        }
+
+        .available-bus-card .bus-route {
+            font-size: 0.82rem;
+            opacity: 0.6;
+            margin-top: 4px;
+        }
+
+        /* Status badges */
+        .badge {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 3px 12px;
+            border-radius: 50px;
+            font-family: 'Sora', sans-serif;
+        }
+
+        .badge-active { background: #F05E23; color: white; }
+        .badge-available { background: #F05E23; color: white; }
+
+        /* Reject / delete button */
+        .btn-danger {
+            background: #c0392b;
+            border: none;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            transition: 0.2s;
+            flex-shrink: 0;
+        }
+
+        .btn-danger:hover { background: #a93226; }
+
+        /* Leaflet map container */
+        #adminMap {
+            width: 100%;
+            height: 420px;
+            border-radius: 16px;
+            overflow: hidden;
+            margin-top: 1rem;
+        }
+
+        /* Announcement items */
+        .announcement-item {
+            background: #212121;
+            border-radius: 14px;
+            padding: 1rem 1.2rem;
+            margin-bottom: 0.8rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .announcement-item .ann-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        .announcement-item .ann-body {
+            font-size: 0.85rem;
+            opacity: 0.7;
+            margin-top: 3px;
+        }
+
+        .announcement-item .ann-date {
+            font-size: 0.75rem;
+            opacity: 0.45;
+            margin-top: 5px;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            background: #1e1e1e;
+            border: 1px solid #3a3a3a;
+            border-radius: 16px;
+            color: white;
+            font-family: 'Manrope', sans-serif;
+            font-size: 0.95rem;
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        textarea:focus { outline: none; border-color: #F05E23; }
+
+        .admin-panel {
+            background: transparent;
         }
 
         .toast-message {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: #F05E23;
+            bottom: 28px;
+            right: 28px;
+            background: #1a1a1a;
             color: white;
-            padding: 12px 20px;
-            border-radius: 40px;
-            font-weight: 600;
+            padding: 14px 20px 14px 16px;
+            border-radius: 16px;
+            font-weight: 500;
+            font-size: 0.9rem;
             z-index: 1000;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            animation: fadeInUp 0.3s ease;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            border-left: 4px solid #4caf50;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 220px;
+            max-width: 340px;
+            animation: toastIn 0.3s ease forwards;
         }
 
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .toast-message::before {
+            content: '\2713';
+            background: #4caf50;
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 700;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
         }
 
-        hr {
-            border-color: #3a3a3a;
-            margin: 1rem 0;
+        .toast-message.toast-exit {
+            animation: toastOut 0.3s ease forwards;
+        }
+
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateY(16px) scale(0.95); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @keyframes toastOut {
+            from { opacity: 1; transform: translateY(0) scale(1); }
+            to   { opacity: 0; transform: translateY(16px) scale(0.95); }
+        }
+
+        /* Role radio buttons */
+        .role-radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            margin-top: 0.4rem;
+        }
+
+        .role-radio {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .role-radio input[type="radio"] { display: none; }
+
+        .radio-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid #555;
+            display: inline-block;
+            flex-shrink: 0;
+            transition: 0.2s;
+        }
+
+        .role-radio input[type="radio"]:checked + .radio-dot {
+            background: #F05E23;
+            border-color: #F05E23;
+        }
+
+        .driver-note {
+            background: #2a2a2a;
+            border: 1px solid #3a3a3a;
+            border-radius: 12px;
+            padding: 0.8rem 1rem;
+            font-size: 0.85rem;
+            opacity: 0.8;
+            margin-bottom: 1rem;
         }
 
         .flex-between {
@@ -257,5 +516,5 @@
             .navbar {
                 flex-direction: column;
                 align-items: stretch;
-            }
+            } 
         }
