@@ -17,7 +17,8 @@ document.querySelectorAll("input[name='roleSelect']").forEach(radio => {
     });
 });
 
-document.getElementById("authForm").addEventListener("submit", (e) => {
+const form = document.getElementById("authForm");
+form.addEventListener("submit", (e) => {
     e.preventDefault();
     const isLogin = authMode === "login";
 
@@ -32,12 +33,9 @@ document.getElementById("authForm").addEventListener("submit", (e) => {
         showToast(`Welcome ${user.name || email}!`);
         window.location.href = "/dashboard";
     } else {
-        const name = document.getElementById("name").value.trim();
-        const email = document.getElementById("emailSignup").value.trim().toLowerCase();
-        const password = document.getElementById("passwordSignup").value;
-        const phone = document.getElementById("phone").value.trim();
-        const isDriver = document.querySelector("input[name='roleSelect']:checked").value === "driver";
-        const plate = isDriver ? document.getElementById("plate").value.trim() : "";
+      form.setAttribute("action", "/register");  
+      form.setAttribute("method", "POST");
+      form.setAttribute("enctype", "multipart/form-data");
 
         if (!email || !password) { showToast("Email and password are required.", 2000); return; }
         const users = getUsers();
