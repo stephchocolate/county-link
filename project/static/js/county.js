@@ -87,10 +87,10 @@ document.querySelectorAll("input[name='roleSelect']").forEach(radio => {
 });
 
 document.getElementById("authForm").addEventListener("submit", (e) => {
-    e.preventDefault();
     const isLogin = authMode === "login";
 
     if (isLogin) {
+        e.preventDefault();
         const email = document.getElementById("email").value.trim().toLowerCase();
         const password = document.getElementById("password").value;
         if (!email || !password) { showToast("Email and password are required.", 2000); return; }
@@ -99,35 +99,6 @@ document.getElementById("authForm").addEventListener("submit", (e) => {
         if (user.role === "driver" && !user.approved) { showToast("Driver account not yet approved by admin.", 2500); return; }
         setSession({ email: user.email, role: user.role, name: user.name || user.email.split("@")[0] });
         showToast(`Welcome ${user.name || email}!`);
-        render();
-    } else {
-        const name = document.getElementById("name").value.trim();
-        const email = document.getElementById("emailSignup").value.trim().toLowerCase();
-        const password = document.getElementById("passwordSignup").value;
-        const phone = document.getElementById("phone").value.trim();
-        const isDriver = document.querySelector("input[name='roleSelect']:checked").value === "driver";
-        const plate = isDriver ? document.getElementById("plate").value.trim() : "";
-
-        if (!email || !password) { showToast("Email and password are required.", 2000); return; }
-        const users = getUsers();
-        if (users.find(u => u.email === email)) { showToast("Email already exists. Please log in.", 2000); return; }
-
-        if (isDriver) {
-            users.push({ email, password, name, phone, plate, role: "driver", approved: false });
-            saveUsers(users);
-            const requests = getDriverRequests();
-            if (!requests.find(r => r.email === email)) {
-                requests.push({ email, name, phone, plate, status: "pending", requestedAt: new Date().toISOString() });
-                saveDriverRequests(requests);
-            }
-            setSession({ email, role: "driver", name, approved: false });
-            showToast("Driver request submitted! Await admin approval.");
-        } else {
-            users.push({ email, password, name, phone, role: "passenger", approved: true });
-            saveUsers(users);
-            setSession({ email, role: "passenger", name });
-            showToast("Account created successfully!");
-        }
         render();
     }
 });

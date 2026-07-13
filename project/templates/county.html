@@ -21,7 +21,7 @@
                 <div class="logo-icon"><i class="fas fa-bus"></i></div>
                 <div class="brand"><h1>County Link</h1><p>Community Road</p></div>
             </div>
-            <h2 id="authTitle" style="margin-bottom: 1.2rem;"></h2>
+            <h2 id="authTitle" style="margin-bottom: 1rem;">Welcome Back</h2>
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     <div class="flash-messages">
@@ -31,20 +31,17 @@
                     </div>
                 {% endif %}
             {% endwith %}
-            
-            <form id="authForm" method="POST" action="{{ url_for('register') }}">
-                <!-- Login fields -->
+            <form id="authForm" method="POST" action="{{ url_for('register_driver') }}">
                 <div id="loginFields">
                     <div class="form-group">
                         <label>Email</label>
-                        <input type="email" id="email" placeholder="Enter your email" />
+                        <input type="email" id="email" name="login_email" placeholder="Enter your email" />
                     </div>
                     <div class="form-group">
                         <label>Password</label>
-                        <input type="password" id="password" placeholder="Enter your password" />
+                        <input type="password" id="password" name="login_password" placeholder="Enter your password" />
                     </div>
                 </div>
-                <!-- Signup fields -->
                 <div id="signupFields" hidden>
                     <div class="form-group">
                         <label>Full Name</label>
@@ -78,17 +75,18 @@
                     <div id="driverFields" hidden>
                         <div class="form-group">
                             <label>Vehicle Number Plate</label>
-                            <input type="text" id="plate" placeholder="KBZ 123A" />
+                            <input type="text" id="plate" name="plate" placeholder="KBZ 123A" />
                         </div>
                         <div class="driver-note">
                             Note: Driver accounts require admin approval before you can access the system.
                         </div>
                     </div>
                 </div>
-                <button type="submit" id="authSubmitBtn" class="btn-primary" style="width:100%; margin-top: 1rem;"></button>
+                <button type="submit" id="authSubmitBtn" class="btn-primary" style="width:100%; margin-top: 1rem;">Sign In</button>
             </form>
-            <div id="toggleAuthWrap" style="text-align:center; margin-top: 1.2rem; font-size:0.9rem; opacity:0.7;">
-                <span id="toggleAuthText"></span> <button id="toggleAuthMode" class="nav-btn" style="color:#F05E23; padding:0;"></button>
+            <div id="toggleAuthWrap" class="auth-switch" style="margin-top: 1rem;">
+                <span id="toggleAuthText">Don't have an account?</span>
+                <button type="button" id="toggleAuthMode" class="nav-btn">Sign Up</button>
             </div>
         </div>
     </div>

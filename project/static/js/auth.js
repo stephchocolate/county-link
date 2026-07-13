@@ -19,55 +19,43 @@ document.querySelectorAll("input[name='roleSelect']").forEach(radio => {
 
 const form = document.getElementById("authForm");
 form.addEventListener("submit", (e) => {
-    e.preventDefault();
     const isLogin = authMode === "login";
 
     if (isLogin) {
+        e.preventDefault();
         const email = document.getElementById("email").value.trim().toLowerCase();
         const password = document.getElementById("password").value;
         if (!email || !password) { showToast("Email and password are required.", 2000); return; }
-        const user = getUsers().find(u => u.email === email && u.password === password);
+
+        const user = getUsers().find((entry) => entry.email === email && entry.password === password);
         if (!user) { showToast("Invalid credentials", 2000); return; }
         if (user.role === "driver" && !user.approved) { showToast("Driver account not yet approved by admin.", 2500); return; }
+
         setSession({ email: user.email, role: user.role, name: user.name || user.email.split("@")[0] });
         showToast(`Welcome ${user.name || email}!`);
-        window.location.href = "/dashboard";
-    } else {
-      form.setAttribute("action", "/register");  
-      form.setAttribute("method", "POST");
-      form.setAttribute("enctype", "multipart/form-data");
-
-        if (!email || !password) { showToast("Email and password are required.", 2000); return; }
-        const users = getUsers();
-        if (users.find(u => u.email === email)) { showToast("Email already exists. Please log in.", 2000); return; }
-
-        if (isDriver) {
-            users.push({ email, password, name, phone, plate, role: "driver", approved: false });
-            saveUsers(users);
-            const requests = getDriverRequests();
-            if (!requests.find(r => r.email === email)) {
-                requests.push({ email, name, phone, plate, status: "pending", requestedAt: new Date().toISOString() });
-                saveDriverRequests(requests);
-            }
-            setSession({ email, role: "driver", name, approved: false });
-            showToast("Driver request submitted! Await admin approval.");
-        } else {
-            users.push({ email, password, name, phone, role: "passenger", approved: true });
-            saveUsers(users);
-            setSession({ email, role: "passenger", name });
-            showToast("Account created successfully!");
-        }
         window.location.href = "/dashboard";
     }
 });
 
-document.getElementById("toggleAuthMode").addEventListener("click", () => {
+const authToggle = document.getElementById("toggleAuthMode");
+authToggle.addEventListener("click", () => {
     authMode = authMode === "login" ? "signup" : "login";
+    form.action = authMode === "login" ? "/login" : "/register";
     updateAuthUI();
 });
+
+const initialAuthMode = window.initialAuthMode || 'login';
+if (initialAuthMode === 'signup') {
+    authMode = 'signup';
+    form.action = "/register";
+} else {
+    form.action = "/login";
+}
 
 if (getCurrentSession()) {
     window.location.href = "/dashboard";
 } else {
     updateAuthUI();
 }
+
+
