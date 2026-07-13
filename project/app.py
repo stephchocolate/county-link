@@ -3,6 +3,7 @@ import os
 
 from dotenv import load_dotenv
 from flask import Flask, flash, jsonify, redirect, render_template, request, url_for
+from datetime import datetime
 
 try:
     from supabase import create_client
@@ -59,6 +60,7 @@ def register_driver():
                 'phone_number': phone_number,
                 'role': role,
                 'password_hash': password_hash,
+                'created_at': datetime.now().isoformat()
             }).execute()
             if response.data:
                 flash('Registration submitted successfully.', 'success')
