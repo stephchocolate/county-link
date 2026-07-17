@@ -17,45 +17,22 @@ document.querySelectorAll("input[name='roleSelect']").forEach(radio => {
     });
 });
 
-const form = document.getElementById("authForm");
-form.addEventListener("submit", (e) => {
-    const isLogin = authMode === "login";
-
-    if (isLogin) {
-        e.preventDefault();
-        const email = document.getElementById("email").value.trim().toLowerCase();
-        const password = document.getElementById("password").value;
-        if (!email || !password) { showToast("Email and password are required.", 2000); return; }
-
-        const user = getUsers().find((entry) => entry.email === email && entry.password === password);
-        if (!user) { showToast("Invalid credentials", 2000); return; }
-        if (user.role === "driver" && !user.approved) { showToast("Driver account not yet approved by admin.", 2500); return; }
-
-        setSession({ email: user.email, role: user.role, name: user.name || user.email.split("@")[0] });
-        showToast(`Welcome ${user.name || email}!`);
-        window.location.href = "/dashboard";
-    }
-});
-
+// Toggle between login and signup modes
 const authToggle = document.getElementById("toggleAuthMode");
 authToggle.addEventListener("click", () => {
     authMode = authMode === "login" ? "signup" : "login";
+    const form = document.getElementById("authForm");
     form.action = authMode === "login" ? "/login" : "/register";
     updateAuthUI();
 });
 
+// Set initial mode from server-passed variable
 const initialAuthMode = window.initialAuthMode || 'login';
 if (initialAuthMode === 'signup') {
     authMode = 'signup';
-    form.action = "/register";
+    document.getElementById("authForm").action = "/register";
 } else {
-    form.action = "/login";
+    document.getElementById("authForm").action = "/login";
 }
 
-if (getCurrentSession()) {
-    window.location.href = "/dashboard";
-} else {
-    updateAuthUI();
-}
-
-
+updateAuthUI();

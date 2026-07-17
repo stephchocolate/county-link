@@ -31,7 +31,7 @@
                     </div>
                 {% endif %}
             {% endwith %}
-            <form id="authForm" method="POST" action="{{ url_for('register_driver') }}">
+            <form id="authForm" method="POST" action="{{ url_for('register') }}">
                 <div id="loginFields">
                     <div class="form-group">
                         <label>Email</label>
@@ -172,42 +172,158 @@
 
     <!-- Driver Active Panel -->
     <div id="driverActivePanel" hidden>
-        <div class="dashboard-grid">
-            <div class="card">
-                <h3><i class="fas fa-bus"></i> Your Bus Status</h3>
-                <p id="driverBusInfo"></p>
-                <hr />
-                <h4>Update Live Location</h4>
-                <div class="form-group">
-                    <label>Latitude</label>
-                    <input type="number" step="any" id="driverLat" />
+
+        <!-- Availability Status Card -->
+        <div class="driver-status-card">
+            <div class="driver-status-left">
+                <div class="status-indicator available" id="statusIndicator"></div>
+                <div>
+                    <h3 id="driverStatusText">You are Available</h3>
+                    <p id="driverStatusDesc">Location is being shared with passengers</p>
                 </div>
-                <div class="form-group">
-                    <label>Longitude</label>
-                    <input type="number" step="any" id="driverLng" />
-                </div>
-                <button id="updateLocationBtn" class="btn-primary" style="width:100%">Update Location</button>
             </div>
-            <div class="map-placeholder">
-                <i class="fas fa-location-dot" style="font-size:3rem;"></i>
-                <h3>Driver Simulated Tracking</h3>
-                <p>Move bus location, passengers see updates.</p>
+            <button id="toggleAvailabilityBtn" class="btn-primary btn-sm">
+                <i class="fas fa-pause"></i> Go Offline
+            </button>
+        </div>
+
+        <!-- Vehicle & Route Info -->
+        <div class="driver-info-grid">
+            <div class="driver-info-card">
+                <div class="driver-info-icon"><i class="fas fa-map-marker-alt"></i></div>
+                <div>
+                    <label>Current Location</label>
+                    <p id="driverCurrentLocation">Loading...</p>
+                </div>
+            </div>
+            <div class="driver-info-card">
+                <div class="driver-info-icon"><i class="fas fa-id-card"></i></div>
+                <div>
+                    <label>Number Plate</label>
+                    <p id="driverNumberPlate">Loading...</p>
+                </div>
+            </div>
+            <div class="driver-info-card">
+                <div class="driver-info-icon"><i class="fas fa-route"></i></div>
+                <div>
+                    <label>Route</label>
+                    <p id="driverRoute">Loading...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map + Location Update -->
+        <div class="driver-tracking-section">
+            <div class="driver-tracking-header">
+                <h3><i class="fas fa-satellite"></i> Live Tracking</h3>
+                <span class="driver-update-badge"><i class="fas fa-sync-alt"></i> Updates every 5 seconds</span>
+            </div>
+            <div class="driver-tracking-layout">
+                <div id="driverMap"></div>
+                <div class="driver-location-controls">
+                    <h4><i class="fas fa-edit"></i> Update Location</h4>
+                    <div class="form-group">
+                        <label>Latitude</label>
+                        <input type="number" step="any" id="driverLat" placeholder="-1.286389" />
+                    </div>
+                    <div class="form-group">
+                        <label>Longitude</label>
+                        <input type="number" step="any" id="driverLng" placeholder="36.817223" />
+                    </div>
+                    <button id="updateLocationBtn" class="btn-primary" style="width:100%">
+                        <i class="fas fa-location-arrow"></i> Update Location
+                    </button>
+
+                    <hr style="border-color: rgba(255,255,255,0.08); margin: 1rem 0;" />
+
+                    <h4><i class="fas fa-route"></i> My Route</h4>
+                    <div class="form-group">
+                        <label>Route Name</label>
+                        <input type="text" id="driverRouteInput" placeholder="e.g. CBD to Community Road" />
+                    </div>
+                    <button id="updateRouteBtn" class="btn-primary" style="width:100%; background:#4caf50;">
+                        <i class="fas fa-check"></i> Update Route
+                    </button>
+
+                    <p class="driver-note-text"><i class="fas fa-info-circle"></i> Your location updates every 5 seconds automatically.</p>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Passenger Panel -->
     <div id="passengerPanel" hidden>
-        <div class="dashboard-grid">
-            <div class="card">
-                <h3><i class="fas fa-route"></i> Live Bus Fleet</h3>
+        <!-- Passenger Tab Navigation -->
+        <div class="passenger-tabs">
+            <button class="passenger-tab active" data-ptab="dashboard">
+                <i class="fas fa-bus"></i> Dashboard
+            </button>
+            <button class="passenger-tab" data-ptab="announcements">
+                <i class="fas fa-bullhorn"></i> Announcements
+            </button>
+        </div>
+
+        <!-- Dashboard Tab -->
+        <div id="ptab-dashboard">
+            <!-- Available Buses Section -->
+            <div class="passenger-section">
+                <div class="section-header">
+                    <h3><i class="fas fa-route"></i> Available Buses</h3>
+                    <button id="refreshBuses" class="btn-primary btn-sm"><i class="fas fa-sync-alt"></i> Refresh</button>
+                </div>
                 <div id="passengerBusList"></div>
-                <button id="refreshBuses" class="btn-primary" style="margin-top:1rem;">Refresh Tracking</button>
             </div>
-            <div class="map-placeholder">
-                <i class="fas fa-map"></i>
-                <h2>Interactive Map Simulation</h2>
-                <div id="passengerMapMock" style="background:#2c2c2c; padding:1rem; border-radius:20px; width:100%;"></div>
+
+            <!-- Live Bus Tracking Section -->
+            <div class="passenger-section">
+                <h3><i class="fas fa-map-marked-alt"></i> Live Bus Tracking</h3>
+                <div class="tracking-layout">
+                    <div class="tracking-map" id="passengerMap"></div>
+                    <div class="tracking-sidebar">
+                        <div class="tracking-panel">
+                            <h4><i class="fas fa-route"></i> Available Routes</h4>
+                            <div id="passengerRouteList"></div>
+                        </div>
+                        <div class="tracking-panel">
+                            <h4><i class="fas fa-bus"></i> Bus Availability</h4>
+                            <div id="passengerAvailability"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Announcements Tab -->
+        <div id="ptab-announcements" hidden>
+            <div class="passenger-section">
+                <h3><i class="fas fa-bullhorn"></i> Announcements</h3>
+                <div id="passengerAnnouncementsList"></div>
+            </div>
+            <div class="passenger-section">
+                <h3><i class="fas fa-info-circle"></i> How It Works</h3>
+                <div class="how-it-works">
+                    <div class="how-step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h4>Check Available Buses</h4>
+                            <p>View a list of buses currently online along with their assigned routes.</p>
+                        </div>
+                    </div>
+                    <div class="how-step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h4>Track Location</h4>
+                            <p>See the real-time geographic location of these available buses on the map.</p>
+                        </div>
+                    </div>
+                    <div class="how-step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h4>Plan Your Trip</h4>
+                            <p>Use the provided information to decide the best time to catch your bus.</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -272,12 +388,51 @@
     </div>
 </template>
 
-<template id="tpl-passenger-bus-item">
-    <div class="bus-item">
-        <div><strong class="p-bus-id-route"></strong></div>
-        <div>📍 <span class="p-bus-coords"></span></div>
-        <div>🕒 Last update: <span class="p-bus-time"></span></div>
-        <div>Driver: <span class="p-bus-driver"></span></div>
+<!-- Passenger bus card template -->
+<template id="tpl-passenger-bus-card">
+    <div class="passenger-bus-card">
+        <div class="bus-card-header">
+            <div class="bus-card-driver">
+                <i class="fas fa-user-circle"></i>
+                <span class="driver-name"></span>
+            </div>
+            <span class="badge badge-available">Available</span>
+        </div>
+        <div class="bus-card-body">
+            <div class="bus-card-info">
+                <i class="fas fa-id-card"></i>
+                <span class="bus-plate"></span>
+            </div>
+            <div class="bus-card-info">
+                <i class="fas fa-route"></i>
+                <span class="bus-route"></span>
+            </div>
+            <div class="bus-card-info">
+                <i class="fas fa-phone"></i>
+                <span class="bus-contact">CBD to Community Road</span>
+            </div>
+        </div>
+    </div>
+</template>
+
+<!-- Passenger announcement card template -->
+<template id="tpl-passenger-announcement">
+    <div class="passenger-announcement-card">
+        <div class="ann-badge">Official</div>
+        <div class="ann-date"></div>
+        <h4 class="ann-title"></h4>
+        <p class="ann-body"></p>
+    </div>
+</template>
+
+<!-- Passenger route item template -->
+<template id="tpl-passenger-route-item">
+    <div class="route-item">
+        <div class="route-info">
+            <i class="fas fa-circle"></i>
+            <span class="route-name"></span>
+        </div>
+        <span class="route-badge"></span>
     </div>
 </template>
 

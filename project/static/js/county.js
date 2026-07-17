@@ -1,53 +1,13 @@
-// ---------- STORAGE ----------
-const STORAGE_USERS = "countylink_users";
-const STORAGE_DRIVER_REQUESTS = "countylink_driver_requests";
-const STORAGE_SESSION = "countylink_session";
-const STORAGE_BUS_LOCATIONS = "countylink_bus_locations";
-const STORAGE_ANNOUNCEMENTS = "countylink_announcements";
-
-function getUsers() {
-    const users = localStorage.getItem(STORAGE_USERS);
-    if (!users) {
-        const defaultUsers = [{ email: "stephanie.ulare@riarauniversity.ac.ke", password: "admin123", role: "admin", approved: true, name: "Stephanie Admin" }];
-        localStorage.setItem(STORAGE_USERS, JSON.stringify(defaultUsers));
-        return defaultUsers;
+// ---------- SESSION ----------
+async function fetchSession() {
+    try {
+        const resp = await fetch('/api/session');
+        if (!resp.ok) return null;
+        return await resp.json();
+    } catch {
+        return null;
     }
-    return JSON.parse(users);
 }
-function saveUsers(users) { localStorage.setItem(STORAGE_USERS, JSON.stringify(users)); }
-
-function getDriverRequests() {
-    const reqs = localStorage.getItem(STORAGE_DRIVER_REQUESTS);
-    return reqs ? JSON.parse(reqs) : [];
-}
-function saveDriverRequests(r) { localStorage.setItem(STORAGE_DRIVER_REQUESTS, JSON.stringify(r)); }
-
-function getBusLocations() {
-    const locs = localStorage.getItem(STORAGE_BUS_LOCATIONS);
-    if (!locs) {
-        const defaultBuses = [
-            { id: "bus101", driverEmail: null, lat: -1.286389, lng: 36.817223, route: "Route A - City Center", lastUpdate: new Date().toISOString() },
-            { id: "bus102", driverEmail: null, lat: -1.292066, lng: 36.821945, route: "Route B - Westlands", lastUpdate: new Date().toISOString() }
-        ];
-        localStorage.setItem(STORAGE_BUS_LOCATIONS, JSON.stringify(defaultBuses));
-        return defaultBuses;
-    }
-    return JSON.parse(locs);
-}
-function saveBusLocations(buses) { localStorage.setItem(STORAGE_BUS_LOCATIONS, JSON.stringify(buses)); }
-
-function getCurrentSession() {
-    const sess = localStorage.getItem(STORAGE_SESSION);
-    return sess ? JSON.parse(sess) : null;
-}
-function setSession(user) { localStorage.setItem(STORAGE_SESSION, JSON.stringify(user)); }
-function clearSession() { localStorage.removeItem(STORAGE_SESSION); }
-
-function getAnnouncements() {
-    const a = localStorage.getItem(STORAGE_ANNOUNCEMENTS);
-    return a ? JSON.parse(a) : [];
-}
-function saveAnnouncements(list) { localStorage.setItem(STORAGE_ANNOUNCEMENTS, JSON.stringify(list)); }
 
 function showToast(message, duration = 3000) {
     const toast = document.createElement("div");
@@ -62,327 +22,655 @@ function showToast(message, duration = 3000) {
 
 // ---------- PANELS ----------
 const PANELS = ["authPanel", "navbar", "adminPanel", "driverPendingPanel", "driverActivePanel", "passengerPanel", "dashFooter"];
-function hideAll() { PANELS.forEach(id => document.getElementById(id).hidden = true); }
-function show(...ids) { ids.forEach(id => document.getElementById(id).hidden = false); }
+function hideAll() { PANELS.forEach(id => { const el = document.getElementById(id); if (el) el.hidden = true; }); }
+function show(...ids) { ids.forEach(id => { const el = document.getElementById(id); if (el) el.hidden = false; }); }
 
-// ---------- AUTH ----------
-let authMode = "login";
-
-function renderAuth() {
-    hideAll();
-    show("authPanel");
-    const isLogin = authMode === "login";
-    document.getElementById("authTitle").textContent = isLogin ? "Welcome Back" : "Create Account";
-    document.getElementById("authSubmitBtn").textContent = isLogin ? "Sign In" : "Create Account";
-    document.getElementById("toggleAuthText").textContent = isLogin ? "Don't have an account?" : "Already have an account?";
-    document.getElementById("toggleAuthMode").textContent = isLogin ? "Sign Up" : "Sign In";
-    document.getElementById("loginFields").hidden = !isLogin;
-    document.getElementById("signupFields").hidden = isLogin;
-}
-
-document.querySelectorAll("input[name='roleSelect']").forEach(radio => {
-    radio.addEventListener("change", () => {
-        document.getElementById("driverFields").hidden = radio.value !== "driver" || !radio.checked;
-    });
-});
-
-document.getElementById("authForm").addEventListener("submit", (e) => {
-    const isLogin = authMode === "login";
-
-    if (isLogin) {
-        e.preventDefault();
-        const email = document.getElementById("email").value.trim().toLowerCase();
-        const password = document.getElementById("password").value;
-        if (!email || !password) { showToast("Email and password are required.", 2000); return; }
-        const user = getUsers().find(u => u.email === email && u.password === password);
-        if (!user) { showToast("Invalid credentials", 2000); return; }
-        if (user.role === "driver" && !user.approved) { showToast("Driver account not yet approved by admin.", 2500); return; }
-        setSession({ email: user.email, role: user.role, name: user.name || user.email.split("@")[0] });
-        showToast(`Welcome ${user.name || email}!`);
-        render();
-    }
-});
-
-document.getElementById("toggleAuthMode").addEventListener("click", () => {
-    authMode = authMode === "login" ? "signup" : "login";
-    renderAuth();
-});
-
-// ---------- DASHBOARD ----------
+// ---------- RENDER DASHBOARD ----------
 let adminMap = null;
 
-function renderDashboard(session) {
-    const { email, role, name } = session;
-    const approved = session.approved !== undefined ? session.approved : true;
-    const buses = getBusLocations();
+async function renderDashboard(session) {
+    const { email, role, full_name: name, is_approved: approved } = session;
+    const isAdmin = role === "admin";
 
     hideAll();
-    show("navbar");
-    document.getElementById("navTitle").textContent = role === "admin" ? "County Link Admin" : "County Link";
-    document.getElementById("navUserName").textContent = role === "admin" ? "Admin User" : (name || email);
 
-    if (role === "admin") {
-        show("adminPanel");
-        populateAdminPanel(buses, session);
-        initAdminTabs(buses, session);
+    if (isAdmin) {
+        show("navbar", "adminPanel");
+        document.getElementById("navTitle").textContent = "County Link Admin";
+        document.getElementById("navUserName").textContent = "Admin User";
+        await populateAdminPanel();
+        initAdminTabs();
     } else if (role === "driver") {
         if (!approved) {
-            show("driverPendingPanel");
+            show("navbar", "driverPendingPanel");
+            document.getElementById("navTitle").textContent = "County Link";
+            document.getElementById("navUserName").textContent = name || email;
+            document.getElementById("refreshDashboard").onclick = () => renderDashboard(session);
         } else {
-            assignBusIfNeeded(email, buses);
+            // Driver panel has its own header, hide the main navbar
             show("driverActivePanel", "dashFooter");
-            populateDriverPanel(email);
+            await populateDriverPanel(email);
         }
     } else {
-        show("passengerPanel", "dashFooter");
-        populatePassengerPanel(buses);
+        // Passenger
+        show("navbar", "passengerPanel", "dashFooter");
+        document.getElementById("navTitle").textContent = "County Link";
+        document.getElementById("navUserName").textContent = name || email;
+        await populatePassengerPanel();
+        initPassengerTabs();
     }
 
-    attachListeners(session, email, role, approved);
+    // Global logout button (for admin, passenger, pending driver)
+    document.getElementById("logoutBtn").onclick = () => {
+        window.location.href = "/logout";
+    };
 }
 
-function initAdminTabs(buses, session) {
+// ---------- ADMIN PANEL ----------
+async function populateAdminPanel() {
+    const pendingList = document.getElementById("pendingList");
+    pendingList.innerHTML = "";
+
+    try {
+        const resp = await fetch('/api/drivers/pending');
+        if (!resp.ok) { pendingList.textContent = "Could not load pending requests."; return; }
+        const reqs = await resp.json();
+
+        if (!reqs.length) {
+            pendingList.textContent = "No pending requests.";
+        } else {
+            reqs.forEach(req => {
+                const user = req.users || {};
+                const row = document.getElementById("tpl-driver-request-row").content.cloneNode(true);
+                row.querySelector(".req-name").textContent = user.full_name || "Unknown";
+                row.querySelector(".req-email").textContent = user.email || "";
+                row.querySelector(".req-plate").textContent = req.vehicle_plate ? `Number Plate: ${req.vehicle_plate}` : "";
+                row.querySelector(".req-route").textContent = "";
+                const approveBtn = row.querySelector("[data-approve]");
+                approveBtn.setAttribute("data-user-id", req.user_id);
+                const rejectBtn = row.querySelector("[data-reject]");
+                rejectBtn.setAttribute("data-user-id", req.user_id);
+                pendingList.appendChild(row);
+            });
+        }
+    } catch {
+        pendingList.textContent = "Error loading pending requests.";
+    }
+
+    // Attach approve/reject handlers
+    document.querySelectorAll("[data-approve]").forEach(btn => {
+        btn.onclick = async () => {
+            const userId = btn.getAttribute("data-user-id");
+            try {
+                const resp = await fetch('/api/drivers/approve', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: parseInt(userId) })
+                });
+                if (resp.ok) {
+                    showToast("Driver approved!");
+                    await refreshSessionAndRender();
+                } else {
+                    showToast("Failed to approve driver.");
+                }
+            } catch {
+                showToast("Network error.");
+            }
+        };
+    });
+
+    document.querySelectorAll("[data-reject]").forEach(btn => {
+        btn.onclick = async () => {
+            const userId = btn.getAttribute("data-user-id");
+            try {
+                const resp = await fetch('/api/drivers/reject', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: parseInt(userId) })
+                });
+                if (resp.ok) {
+                    showToast("Driver request rejected.");
+                    await refreshSessionAndRender();
+                } else {
+                    showToast("Failed to reject driver.");
+                }
+            } catch {
+                showToast("Network error.");
+            }
+        };
+    });
+}
+
+async function populateFleetManagement() {
+    try {
+        const busResp = await fetch('/api/buses');
+        const buses = busResp.ok ? await busResp.json() : [];
+
+        const drResp = await fetch('/api/active_drivers');
+        const activeDrivers = drResp.ok ? await drResp.json() : [];
+
+        // Leaflet map
+        if (adminMap) { adminMap.remove(); adminMap = null; }
+        const mapEl = document.getElementById("adminMap");
+        if (mapEl) {
+            adminMap = L.map("adminMap").setView([-1.286389, 36.817223], 12);
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                attribution: "© OpenStreetMap contributors"
+            }).addTo(adminMap);
+
+            const busIcon = L.divIcon({
+                html: `<i class="fas fa-bus" style="color:#F05E23; font-size:1.4rem;"></i>`,
+                className: "",
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
+            });
+
+            buses.forEach(bus => {
+                L.marker([bus.lat, bus.lng], { icon: busIcon })
+                    .addTo(adminMap)
+                    .bindPopup(`<b>${bus.id}</b><br>${bus.route || ''}`);
+            });
+        }
+
+        // Active drivers list
+        const activeDriversList = document.getElementById("activeDriversList");
+        if (activeDriversList) {
+            activeDriversList.innerHTML = "";
+            if (!activeDrivers.length) {
+                activeDriversList.textContent = "No active drivers.";
+            } else {
+                activeDrivers.forEach(driver => {
+                    const user = driver.users || {};
+                    const assignedBus = buses.find(b => b.driver_email === driver.email);
+                    const row = document.getElementById("tpl-active-driver-row").content.cloneNode(true);
+                    row.querySelector(".driver-name").textContent = user.full_name || driver.email;
+                    row.querySelector(".driver-email").textContent = user.email || "";
+                    row.querySelector(".driver-plate").textContent = assignedBus ? `Number Plate: ${assignedBus.id}` : driver.vehicle_plate || "";
+                    row.querySelector(".driver-route").textContent = assignedBus ? `Route: ${assignedBus.route}` : "";
+                    activeDriversList.appendChild(row);
+                });
+            }
+        }
+
+        // Available buses list
+        const availableBusesList = document.getElementById("availableBusesList");
+        if (availableBusesList) {
+            availableBusesList.innerHTML = "";
+            buses.forEach(bus => {
+                const card = document.getElementById("tpl-available-bus-card").content.cloneNode(true);
+                card.querySelector(".bus-name").textContent = bus.id;
+                card.querySelector(".bus-plate").textContent = bus.id;
+                card.querySelector(".bus-route").textContent = bus.route || "";
+                availableBusesList.appendChild(card);
+            });
+        }
+    } catch {
+        showToast("Error loading fleet data.");
+    }
+}
+
+async function populateAnnouncements() {
+    const list = document.getElementById("announcementsList");
+    if (!list) return;
+    list.innerHTML = "";
+
+    try {
+        const resp = await fetch('/api/announcements');
+        if (!resp.ok) { list.textContent = "Could not load announcements."; return; }
+        const announcements = await resp.json();
+
+        if (!announcements.length) {
+            list.textContent = "No announcements yet.";
+        } else {
+            announcements.forEach(ann => {
+                const item = document.getElementById("tpl-announcement-item").content.cloneNode(true);
+                item.querySelector(".ann-title").textContent = ann.title;
+                item.querySelector(".ann-body").textContent = ann.body;
+                item.querySelector(".ann-date").textContent = new Date(ann.created_at).toLocaleString();
+                const delBtn = item.querySelector("[data-delete-ann]");
+                delBtn.setAttribute("data-ann-id", ann.id);
+                list.appendChild(item);
+            });
+        }
+
+        document.querySelectorAll("[data-delete-ann]").forEach(btn => {
+            btn.onclick = async () => {
+                const annId = btn.getAttribute("data-ann-id");
+                try {
+                    const resp = await fetch(`/api/announcements?id=${annId}`, { method: 'DELETE' });
+                    if (resp.ok) {
+                        showToast("Announcement deleted.");
+                        await populateAnnouncements();
+                    } else {
+                        showToast("Failed to delete.");
+                    }
+                } catch {
+                    showToast("Network error.");
+                }
+            };
+        });
+    } catch {
+        list.textContent = "Error loading announcements.";
+    }
+}
+
+function initAdminTabs() {
     document.querySelectorAll(".tab-btn").forEach(btn => {
         btn.onclick = () => {
             document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
             btn.classList.add("active");
             const tab = btn.getAttribute("data-tab");
             ["driverRequests", "fleetManagement", "announcements"].forEach(t => {
-                document.getElementById(`tab-${t}`).hidden = t !== tab;
+                const el = document.getElementById(`tab-${t}`);
+                if (el) el.hidden = t !== tab;
             });
-            if (tab === "fleetManagement") initLeafletMap(buses);
+            if (tab === "fleetManagement") populateFleetManagement();
             if (tab === "announcements") populateAnnouncements();
         };
     });
-}
 
-function populateAdminPanel(buses, session) {
-    const pendingList = document.getElementById("pendingList");
-    const pendingReqs = getDriverRequests().filter(r => r.status === "pending");
-    pendingList.innerHTML = "";
-
-    if (pendingReqs.length === 0) {
-        pendingList.textContent = "No pending requests.";
-    } else {
-        pendingReqs.forEach(req => {
-            const row = document.getElementById("tpl-driver-request-row").content.cloneNode(true);
-            row.querySelector(".req-name").textContent = req.name;
-            row.querySelector(".req-email").textContent = req.email;
-            row.querySelector(".req-plate").textContent = req.plate ? `Number Plate: ${req.plate}` : "";
-            row.querySelector(".req-route").textContent = req.route ? `Route: ${req.route}` : "";
-            row.querySelector("[data-approve]").setAttribute("data-approve", req.email);
-            row.querySelector("[data-reject]").setAttribute("data-reject", req.email);
-            pendingList.appendChild(row);
-        });
-    }
-}
-
-function initLeafletMap(buses) {
-    if (adminMap) { adminMap.remove(); adminMap = null; }
-    adminMap = L.map("adminMap").setView([-1.286389, 36.817223], 12);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "© OpenStreetMap contributors"
-    }).addTo(adminMap);
-
-    const busIcon = L.divIcon({
-        html: `<i class="fas fa-bus" style="color:#F05E23; font-size:1.4rem;"></i>`,
-        className: "",
-        iconSize: [24, 24],
-        iconAnchor: [12, 12]
-    });
-
-    buses.forEach(bus => {
-        L.marker([bus.lat, bus.lng], { icon: busIcon })
-            .addTo(adminMap)
-            .bindPopup(`<b>${bus.id}</b><br>${bus.route}`);
-    });
-
-    // Active drivers
-    const activeDriversList = document.getElementById("activeDriversList");
-    activeDriversList.innerHTML = "";
-    const activeDrivers = getUsers().filter(u => u.role === "driver" && u.approved);
-    if (activeDrivers.length === 0) {
-        activeDriversList.textContent = "No active drivers.";
-    } else {
-        activeDrivers.forEach(driver => {
-            const assignedBus = buses.find(b => b.driverEmail === driver.email);
-            const row = document.getElementById("tpl-active-driver-row").content.cloneNode(true);
-            row.querySelector(".driver-name").textContent = driver.name || driver.email;
-            row.querySelector(".driver-email").textContent = driver.email;
-            row.querySelector(".driver-plate").textContent = assignedBus ? `Number Plate: ${assignedBus.id}` : "";
-            row.querySelector(".driver-route").textContent = assignedBus ? `Route: ${assignedBus.route}` : "";
-            activeDriversList.appendChild(row);
-        });
-    }
-
-    // Available buses
-    const availableBusesList = document.getElementById("availableBusesList");
-    availableBusesList.innerHTML = "";
-    buses.forEach(bus => {
-        const assignedDriver = getUsers().find(u => u.email === bus.driverEmail);
-        const card = document.getElementById("tpl-available-bus-card").content.cloneNode(true);
-        card.querySelector(".bus-name").textContent = assignedDriver ? (assignedDriver.name || assignedDriver.email) : bus.id;
-        card.querySelector(".bus-plate").textContent = bus.id;
-        card.querySelector(".bus-route").textContent = bus.route;
-        availableBusesList.appendChild(card);
-    });
-}
-
-function populateAnnouncements() {
-    const list = document.getElementById("announcementsList");
-    list.innerHTML = "";
-    const announcements = getAnnouncements();
-    if (announcements.length === 0) {
-        list.textContent = "No announcements yet.";
-    } else {
-        announcements.forEach((ann, i) => {
-            const item = document.getElementById("tpl-announcement-item").content.cloneNode(true);
-            item.querySelector(".ann-title").textContent = ann.title;
-            item.querySelector(".ann-body").textContent = ann.body;
-            item.querySelector(".ann-date").textContent = new Date(ann.createdAt).toLocaleString();
-            item.querySelector("[data-delete-ann]").setAttribute("data-delete-ann", i);
-            list.appendChild(item);
-        });
-    }
-    document.querySelectorAll("[data-delete-ann]").forEach(btn => {
-        btn.onclick = () => {
-            const idx = parseInt(btn.getAttribute("data-delete-ann"));
-            saveAnnouncements(getAnnouncements().filter((_, i) => i !== idx));
-            populateAnnouncements();
-            showToast("Announcement deleted.");
-        };
-    });
-}
-
-function assignBusIfNeeded(email, buses) {
-    if (!buses.some(b => b.driverEmail === email)) {
-        const freeBus = buses.find(b => !b.driverEmail);
-        if (freeBus) {
-            freeBus.driverEmail = email;
-            saveBusLocations(buses);
-            showToast(`You have been assigned bus ${freeBus.id}.`);
+    // Send announcement button
+    document.getElementById("sendAnnouncementBtn")?.addEventListener("click", async () => {
+        const title = document.getElementById("annTitle").value.trim();
+        const body = document.getElementById("annBody").value.trim();
+        if (!title || !body) { showToast("Please fill in both fields.", 2000); return; }
+        try {
+            const resp = await fetch('/api/announcements', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, body })
+            });
+            if (resp.ok) {
+                document.getElementById("annTitle").value = "";
+                document.getElementById("annBody").value = "";
+                await populateAnnouncements();
+                showToast("Announcement sent!");
+            } else {
+                showToast("Failed to send announcement.");
+            }
+        } catch {
+            showToast("Network error.");
         }
-    }
-}
-
-function populateDriverPanel(email) {
-    const myBus = getBusLocations().find(b => b.driverEmail === email);
-    document.getElementById("driverBusInfo").textContent = myBus
-        ? `Bus ID: ${myBus.id} | Route: ${myBus.route} | Location: ${myBus.lat.toFixed(5)}, ${myBus.lng.toFixed(5)}`
-        : "No bus assigned yet. Please contact admin.";
-    document.getElementById("driverLat").value = myBus ? myBus.lat : -1.286;
-    document.getElementById("driverLng").value = myBus ? myBus.lng : 36.817;
-}
-
-function populatePassengerPanel(buses) {
-    const list = document.getElementById("passengerBusList");
-    const mapMock = document.getElementById("passengerMapMock");
-    list.innerHTML = "";
-    mapMock.innerHTML = "";
-
-    buses.forEach(bus => {
-        const item = document.getElementById("tpl-passenger-bus-item").content.cloneNode(true);
-        item.querySelector(".p-bus-id-route").textContent = `${bus.id} - ${bus.route}`;
-        item.querySelector(".p-bus-coords").textContent = `${bus.lat.toFixed(5)}, ${bus.lng.toFixed(5)}`;
-        item.querySelector(".p-bus-time").textContent = new Date(bus.lastUpdate).toLocaleTimeString();
-        item.querySelector(".p-bus-driver").textContent = bus.driverEmail ? "Active" : "Awaiting driver";
-        list.appendChild(item);
-
-        const pin = document.createElement("div");
-        pin.textContent = `🚌 ${bus.id}: (${bus.lat.toFixed(5)}, ${bus.lng.toFixed(5)}) — ${bus.route}`;
-        mapMock.appendChild(pin);
     });
-
-    const note = document.createElement("p");
-    note.style.marginTop = "12px";
-    note.innerHTML = `<i class="fas fa-info-circle"></i> Real-time GPS integration coming soon.`;
-    mapMock.appendChild(note);
 }
 
-function attachListeners(session, email, role, approved) {
-    document.getElementById("logoutBtn").onclick = () => {
-        clearSession();
-        showToast("Logged out");
-        render();
-    };
+// ---------- DRIVER PANEL ----------
+let driverMap = null;
+let driverAutoRefreshInterval = null;
 
-    if (role === "admin") {
-        document.querySelectorAll("[data-approve]").forEach(btn => {
-            btn.onclick = () => {
-                const reqEmail = btn.getAttribute("data-approve");
-                const users = getUsers();
-                const user = users.find(u => u.email === reqEmail);
-                if (user) { user.approved = true; saveUsers(users); }
-                saveDriverRequests(getDriverRequests().map(r => r.email === reqEmail ? { ...r, status: "approved" } : r));
-                showToast(`Approved driver: ${reqEmail}`);
-                renderDashboard(session);
-            };
-        });
+async function populateDriverPanel(email) {
+    try {
+        const busResp = await fetch('/api/buses');
+        const buses = busResp.ok ? await busResp.json() : [];
+        const myBus = buses.find(b => b.driver_email === email);
 
-        document.querySelectorAll("[data-reject]").forEach(btn => {
-            btn.onclick = () => {
-                const reqEmail = btn.getAttribute("data-reject");
-                saveUsers(getUsers().filter(u => u.email !== reqEmail));
-                saveDriverRequests(getDriverRequests().filter(r => r.email !== reqEmail));
-                showToast("Driver request rejected.");
-                renderDashboard(session);
-            };
-        });
+        // Set driver name in header (if the header element exists)
+        const headerUser = document.getElementById("driverPanelUser");
+        if (headerUser) {
+            const session = await fetchSession();
+            headerUser.textContent = session ? (session.full_name || email) : email;
+        }
 
-        document.getElementById("sendAnnouncementBtn")?.addEventListener("click", () => {
-            const title = document.getElementById("annTitle").value.trim();
-            const body = document.getElementById("annBody").value.trim();
-            if (!title || !body) { showToast("Please fill in both fields.", 2000); return; }
-            const list = getAnnouncements();
-            list.unshift({ title, body, createdAt: new Date().toISOString() });
-            saveAnnouncements(list);
-            document.getElementById("annTitle").value = "";
-            document.getElementById("annBody").value = "";
-            populateAnnouncements();
-            showToast("Announcement sent!");
-        });
-    }
+        // Set the dashboard title with driver name
+        const panelTitle = document.getElementById("driverPanelTitle");
+        if (panelTitle) {
+            const session = await fetchSession();
+            panelTitle.textContent = session ? `County Link Driver — ${session.full_name || email}` : "County Link Driver";
+        }
 
-    if (role === "driver" && approved) {
-        document.getElementById("updateLocationBtn").onclick = () => {
+        // Set vehicle & route info
+        if (myBus) {
+            document.getElementById("driverCurrentLocation").textContent =
+                myBus.lat ? `${myBus.lat.toFixed(5)}, ${myBus.lng.toFixed(5)}` : "No location data";
+            document.getElementById("driverNumberPlate").textContent =
+                myBus.vehicle_plate || "N/A";
+            document.getElementById("driverRoute").textContent =
+                myBus.route || "No route assigned";
+
+            // Pre-fill lat/lng inputs
+            document.getElementById("driverLat").value = myBus.lat || "";
+            document.getElementById("driverLng").value = myBus.lng || "";
+        } else {
+            document.getElementById("driverCurrentLocation").textContent = "Update your location";
+            document.getElementById("driverNumberPlate").textContent = "N/A";
+            document.getElementById("driverRoute").textContent = "Not set";
+        }
+
+        // Initialize Leaflet map with a small delay for the container to render
+        setTimeout(() => {
+            if (driverMap) {
+                driverMap.remove();
+                driverMap = null;
+            }
+
+            const mapContainer = document.getElementById("driverMap");
+            if (mapContainer && myBus && myBus.lat && myBus.lng) {
+                driverMap = L.map("driverMap").setView([myBus.lat, myBus.lng], 15);
+                L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                    attribution: "© OpenStreetMap contributors"
+                }).addTo(driverMap);
+
+                const driverIcon = L.divIcon({
+                    html: `<i class="fas fa-bus" style="color:#F05E23; font-size:1.8rem;"></i>`,
+                    className: "",
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 15]
+                });
+
+                L.marker([myBus.lat, myBus.lng], { icon: driverIcon })
+                    .addTo(driverMap)
+                    .bindPopup(`<b>Your Bus</b><br>${myBus.route || ''}<br>${myBus.vehicle_plate || ''}`);
+
+                driverMap.invalidateSize();
+            }
+        }, 300);
+
+        // Update location button
+        document.getElementById("updateLocationBtn").onclick = async () => {
             const lat = parseFloat(document.getElementById("driverLat").value);
             const lng = parseFloat(document.getElementById("driverLng").value);
             if (isNaN(lat) || isNaN(lng)) { showToast("Invalid coordinates"); return; }
-            const busesUpd = getBusLocations();
-            const bus = busesUpd.find(b => b.driverEmail === email);
-            if (bus) {
-                bus.lat = lat; bus.lng = lng; bus.lastUpdate = new Date().toISOString();
-                saveBusLocations(busesUpd);
-                showToast("Location updated!");
-                renderDashboard(session);
-            } else {
-                showToast("No assigned bus yet. Contact admin.");
+            try {
+                const resp = await fetch('/api/location/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ lat, lng })
+                });
+                if (resp.ok) {
+                    showToast("Location updated!");
+                    await refreshSessionAndRender();
+                } else {
+                    const err = await resp.json();
+                    showToast(err.error || "Failed to update location.");
+                }
+            } catch {
+                showToast("Network error.");
             }
         };
-    }
 
-    if (role === "driver" && !approved) {
-        document.getElementById("refreshDashboard").onclick = () => renderDashboard(session);
-    }
+        // Toggle availability button
+        document.getElementById("toggleAvailabilityBtn").onclick = () => {
+            const indicator = document.getElementById("statusIndicator");
+            const statusText = document.getElementById("driverStatusText");
+            const statusDesc = document.getElementById("driverStatusDesc");
+            const btn = document.getElementById("toggleAvailabilityBtn");
+            const isAvailable = indicator.classList.contains("available");
 
-    if (role === "passenger") {
-        document.getElementById("refreshBuses").onclick = () => {
-            renderDashboard(session);
-            showToast("Bus data refreshed");
+            if (isAvailable) {
+                indicator.classList.remove("available");
+                indicator.classList.add("offline");
+                statusText.textContent = "You are Offline";
+                statusDesc.textContent = "Location is not being shared";
+                btn.innerHTML = '<i class="fas fa-play"></i> Go Online';
+                statusText.style.color = "#999";
+            } else {
+                indicator.classList.remove("offline");
+                indicator.classList.add("available");
+                statusText.textContent = "You are Available";
+                statusDesc.textContent = "Location is being shared with passengers";
+                btn.innerHTML = '<i class="fas fa-pause"></i> Go Offline';
+                statusText.style.color = "#4caf50";
+            }
         };
+
+        // Update route button
+        document.getElementById("updateRouteBtn").onclick = async () => {
+            const route = document.getElementById("driverRouteInput").value.trim();
+            if (!route) { showToast("Please enter a route name."); return; }
+            try {
+                const resp = await fetch('/api/driver/route', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ route })
+                });
+                if (resp.ok) {
+                    showToast("Route updated!");
+                    document.getElementById("driverRoute").textContent = route;
+                } else {
+                    const err = await resp.json();
+                    showToast(err.error || "Failed to update route.");
+                }
+            } catch {
+                showToast("Network error.");
+            }
+        };
+
+        // Pre-fill route input with current route
+        if (myBus && myBus.route) {
+            document.getElementById("driverRouteInput").value = myBus.route;
+        }
+
+        // Driver logout button (if header exists)
+        const logoutBtn = document.getElementById("driverLogoutBtn");
+        if (logoutBtn) {
+            logoutBtn.onclick = () => {
+                window.location.href = "/logout";
+            };
+        }
+
+        // Auto-refresh driver location every 5 seconds
+        if (driverAutoRefreshInterval) {
+            clearInterval(driverAutoRefreshInterval);
+        }
+        driverAutoRefreshInterval = setInterval(async () => {
+            const session = await fetchSession();
+            if (session && session.authenticated && session.role === "driver" && session.is_approved) {
+                const busResp = await fetch('/api/buses');
+                const buses = busResp.ok ? await busResp.json() : [];
+                const updatedBus = buses.find(b => b.driver_email === email);
+                if (updatedBus && updatedBus.lat && updatedBus.lng) {
+                    document.getElementById("driverCurrentLocation").textContent =
+                        `${updatedBus.lat.toFixed(5)}, ${updatedBus.lng.toFixed(5)}`;
+                    if (driverMap) {
+                        driverMap.setView([updatedBus.lat, updatedBus.lng], 15);
+                    }
+                }
+            }
+        }, 5000);
+
+    } catch {
+        showToast("Error loading driver data.");
+    }
+}
+
+// ---------- PASSENGER PANEL ----------
+let passengerMap = null;
+
+async function populatePassengerPanel() {
+    const busList = document.getElementById("passengerBusList");
+    const routeList = document.getElementById("passengerRouteList");
+    const availabilityEl = document.getElementById("passengerAvailability");
+    const mapContainer = document.getElementById("passengerMap");
+
+    if (!busList || !routeList || !availabilityEl || !mapContainer) return;
+
+    busList.innerHTML = "";
+    routeList.innerHTML = "";
+    availabilityEl.innerHTML = "";
+
+    try {
+        const resp = await fetch('/api/buses');
+        const buses = resp.ok ? await resp.json() : [];
+
+        // Render bus cards
+        buses.forEach(bus => {
+            const card = document.getElementById("tpl-passenger-bus-card").content.cloneNode(true);
+            card.querySelector(".driver-name").textContent = bus.driver_name || bus.driver_email || "Unknown Driver";
+            card.querySelector(".bus-plate").textContent = bus.vehicle_plate || bus.id || "N/A";
+            card.querySelector(".bus-route").textContent = bus.route || "No route assigned";
+            busList.appendChild(card);
+        });
+
+        if (!buses.length) {
+            busList.innerHTML = '<p style="opacity:0.6; text-align:center; padding:1rem;">No buses currently available.</p>';
+        }
+
+        // Render route list (group by route)
+        const routeCounts = {};
+        buses.forEach(bus => {
+            const route = bus.route || "Unassigned";
+            routeCounts[route] = (routeCounts[route] || 0) + 1;
+        });
+
+        const routeEntries = Object.entries(routeCounts);
+        if (routeEntries.length) {
+            routeEntries.forEach(([route, count]) => {
+                const item = document.getElementById("tpl-passenger-route-item").content.cloneNode(true);
+                item.querySelector(".route-name").textContent = route;
+                const badge = item.querySelector(".route-badge");
+                badge.textContent = count === 1 ? "1 bus" : `${count} buses`;
+                if (route === "CBD to Community Road" || route === "Main") {
+                    badge.style.background = "#F05E23";
+                    badge.style.color = "white";
+                }
+                routeList.appendChild(item);
+            });
+        } else {
+            routeList.innerHTML = '<p style="opacity:0.6; text-align:center; padding:0.5rem;">No routes available.</p>';
+        }
+
+        // Render availability
+        const totalBuses = buses.length;
+        availabilityEl.innerHTML = `
+            <div class="availability-display">
+                <div class="availability-count">${totalBuses}</div>
+                <div class="availability-label">bus${totalBuses !== 1 ? 'es' : ''} available on all routes</div>
+            </div>
+        `;
+
+        // Initialize or update Leaflet map
+        if (passengerMap) {
+            passengerMap.remove();
+            passengerMap = null;
+        }
+
+        passengerMap = L.map("passengerMap").setView([-1.286389, 36.817223], 12);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution: "© OpenStreetMap contributors"
+        }).addTo(passengerMap);
+
+        const busIcon = L.divIcon({
+            html: `<i class="fas fa-bus" style="color:#F05E23; font-size:1.4rem;"></i>`,
+            className: "",
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
+        });
+
+        buses.forEach(bus => {
+            if (bus.lat && bus.lng) {
+                L.marker([bus.lat, bus.lng], { icon: busIcon })
+                    .addTo(passengerMap)
+                    .bindPopup(`<b>${bus.route || 'Bus'}</b><br>${bus.driver_name || bus.driver_email || ''}<br>Plate: ${bus.vehicle_plate || bus.id}`);
+            }
+        });
+
+        // Invalidate size after a short delay to ensure container is visible
+        setTimeout(() => {
+            if (passengerMap) passengerMap.invalidateSize();
+        }, 200);
+
+    } catch {
+        busList.innerHTML = "<p>Error loading bus data.</p>";
+        routeList.innerHTML = "";
+        availabilityEl.innerHTML = "";
+    }
+
+    // Refresh button
+    document.getElementById("refreshBuses").onclick = async () => {
+        await refreshSessionAndRender();
+        showToast("Bus data refreshed");
+    };
+}
+
+// ---------- PASSENGER ANNOUNCEMENTS ----------
+async function populatePassengerAnnouncements() {
+    const list = document.getElementById("passengerAnnouncementsList");
+    if (!list) return;
+    list.innerHTML = "";
+
+    try {
+        const resp = await fetch('/api/announcements');
+        if (!resp.ok) {
+            list.innerHTML = '<p style="opacity:0.6; text-align:center; padding:1rem;">Could not load announcements.</p>';
+            return;
+        }
+        const announcements = await resp.json();
+
+        if (!announcements.length) {
+            list.innerHTML = '<p style="opacity:0.6; text-align:center; padding:1rem;">No announcements yet.</p>';
+            return;
+        }
+
+        announcements.forEach(ann => {
+            const card = document.getElementById("tpl-passenger-announcement").content.cloneNode(true);
+            card.querySelector(".ann-date").textContent = new Date(ann.created_at).toLocaleDateString('en-US', {
+                year: 'numeric', month: 'numeric', day: 'numeric'
+            });
+            card.querySelector(".ann-title").textContent = ann.title;
+            card.querySelector(".ann-body").textContent = ann.body;
+            list.appendChild(card);
+        });
+    } catch {
+        list.innerHTML = '<p style="opacity:0.6; text-align:center; padding:1rem;">Error loading announcements.</p>';
+    }
+}
+
+// ---------- PASSENGER TAB SWITCHING ----------
+function initPassengerTabs() {
+    document.querySelectorAll(".passenger-tab").forEach(btn => {
+        btn.onclick = () => {
+            document.querySelectorAll(".passenger-tab").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            const tab = btn.getAttribute("data-ptab");
+            ["dashboard", "announcements"].forEach(t => {
+                const el = document.getElementById(`ptab-${t}`);
+                if (el) el.hidden = t !== tab;
+            });
+            if (tab === "dashboard") {
+                // Re-render dashboard data and invalidate map
+                populatePassengerPanel();
+            }
+            if (tab === "announcements") {
+                populatePassengerAnnouncements();
+            }
+        };
+    });
+}
+
+// ---------- REFRESH ----------
+async function refreshSessionAndRender() {
+    const session = await fetchSession();
+    if (session) {
+        await renderDashboard(session);
+    } else {
+        window.location.href = "/login";
     }
 }
 
 // ---------- ENTRY POINT ----------
-function render() {
-    const session = getCurrentSession();
-    if (!session) renderAuth();
-    else renderDashboard(session);
+async function init() {
+    // If user is already on a page with session data injected from server,
+    // we can check that first. Otherwise fetch from API.
+    const session = await fetchSession();
+    if (session && session.authenticated) {
+        await renderDashboard(session);
+    } else {
+        // No session — show login (the login page is already rendered via server)
+        // Only show authPanel if we're on a page that has it
+        const authPanel = document.getElementById("authPanel");
+        if (authPanel) {
+            hideAll();
+            show("authPanel");
+        }
+    }
 }
 
-render();
+init();
 
-setInterval(() => {
-    const sess = getCurrentSession();
-    if (sess && sess.role === "passenger") renderDashboard(sess);
+// Auto-refresh for passengers every 10 seconds
+setInterval(async () => {
+    const session = await fetchSession();
+    if (session && session.authenticated && session.role === "passenger") {
+        await renderDashboard(session);
+    }
 }, 10000);
