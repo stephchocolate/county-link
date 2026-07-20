@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -12,10 +13,14 @@ try:
 except Exception:  # pragma: no cover - optional dependency
     create_client = None
 
-load_dotenv()
+# Configure logging early
+logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+logger = logging.getLogger(__name__)
 
-# Point Flask to the correct directories (one level up from api/)
+# Load .env from the project root (explicit path) — only used locally
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / '.env')
+
 app = Flask(
     __name__,
     template_folder=str(BASE_DIR / 'templates'),
@@ -24,16 +29,23 @@ app = Flask(
 )
 app.secret_key = os.getenv("SECRET_KEY", "dev-secret")
 
-logger = logging.getLogger(__name__)
-
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 supabase = None
 
-if create_client and SUPABASE_URL and SUPABASE_KEY:
+if not SUPABASE_URL or not SUPABASE_KEY:
+    logger.warning(
+        "SUPABASE_URL or SUPABASE_KEY is not set. "
+        "On Vercel, add them in Project Settings → Environment Variables. "
+        "Locally, ensure .env exists in the project root."
+    )
+elif not create_client:
+    logger.warning("supabase package is not installed.")
+else:
     try:
         supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-    except Exception as exc:  # pragma: no cover - environment-specific
+        logger.info("Supabase client initialized successfully.")
+    except Exception as exc:
         logger.warning("Supabase client could not be initialized: %s", exc)
 
 
