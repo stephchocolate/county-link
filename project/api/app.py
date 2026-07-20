@@ -1,5 +1,6 @@
 import logging
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
@@ -13,7 +14,14 @@ except Exception:  # pragma: no cover - optional dependency
 
 load_dotenv()
 
-app = Flask(__name__)
+# Point Flask to the correct directories (one level up from api/)
+BASE_DIR = Path(__file__).resolve().parent.parent
+app = Flask(
+    __name__,
+    template_folder=str(BASE_DIR / 'templates'),
+    static_folder=str(BASE_DIR / 'static'),
+    static_url_path='/static'
+)
 app.secret_key = os.getenv("SECRET_KEY", "dev-secret")
 
 logger = logging.getLogger(__name__)
